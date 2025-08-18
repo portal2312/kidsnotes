@@ -21,9 +21,6 @@
    - `data/info.json`: My information data
    - `--open`: Open current browser
 
-   > [!TIP]
-   > Help is `node src/centers.js`
-
    Save to file. For example: `data/centers/48652.json`
 
 3. Save report files
@@ -41,9 +38,6 @@
    - `2025-08-12`: End date
    - `--open`: Open current browser
 
-   > [!TIP]
-   > Help is `node src/reports.js`
-
    Save to file. For example: `data/reports/current.json`
 
 4. Downloads pictures from a reports
@@ -53,6 +47,3 @@
    ```
 
    - `data/reports/current.json`: This report JSON file includes a URL for each picture.
-
-   > [!TIP]
-   > Help is `node src/downloads.js`
