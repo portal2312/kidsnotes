@@ -23,9 +23,7 @@
 
    Save to file. For example: `data/centers/48652.json`
 
-3. Save report files
-
-   Execute:
+3. Open reports url
 
    ```bash
    node src/reports.js data/info.json data/centers/48652.json 9999 2025-08-12 2025-08-12 --open
@@ -38,9 +36,14 @@
    - `2025-08-12`: End date
    - `--open`: Open current browser
 
-   Save to file. For example: `data/reports/current.json`
+   > [!TIP]
+   > For today:
+   >
+   > node src/reports.js data/info.json data/centers/48652.json 9999 $(date "+%Y-%m-%d") $(date "+%Y-%m-%d") --open
 
-4. Downloads pictures from a reports
+4. And, save file. For example: `data/reports/current.json`
+
+5. Downloads pictures from a reports
 
    ```bash
    node src/downloads.js data/reports/current.json
