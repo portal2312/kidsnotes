@@ -23,7 +23,11 @@
 
    Save to file. For example: `data/centers/48652.json`
 
-3. Open reports url
+### Reports
+
+알림장
+
+1. Open url
 
    ```bash
    node src/reports.js data/info.json data/centers/48652.json 9999 2025-08-12 2025-08-12 --open
@@ -41,12 +45,43 @@
    >
    > node src/reports.js data/info.json data/centers/48652.json 9999 $(date "+%Y-%m-%d") $(date "+%Y-%m-%d") --open
 
-4. And, save file. For example: `data/reports/current.json`
+2. And, save file. For example: `data/reports/current.json`
 
-5. Downloads pictures from a reports
+3. Downloads pictures from a reports
 
    ```bash
    node src/downloads.js data/reports/current.json
+   ```
+
+   - `data/reports/current.json`: This report JSON file includes a URL for each picture.
+
+### Notices
+
+공지사항
+
+1. Open url
+
+   ```bash
+   node src/notices.js data/info.json data/centers/48652.json 9999 2025-09-07 --open
+   ```
+
+   - `data/info.json`: My information data
+   - `data/centers/48652.json`: My center data
+   - `9999`: Page size
+   - `2025-08-12`: Search date
+   - `--open`: Open current browser
+
+   > [!TIP]
+   > For today:
+   >
+   > node src/notices.js data/info.json data/centers/48652.json 9999 $(date "+%Y-%m-%d") --open
+
+2. And, save file. For example: `data/notices/current.json`
+
+3. Downloads pictures from a reports
+
+   ```bash
+   node src/downloads.js data/notices/current.json
    ```
 
    - `data/reports/current.json`: This report JSON file includes a URL for each picture.
