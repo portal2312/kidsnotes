@@ -188,13 +188,13 @@ const downloadBatch = async (batch, batchIndex, totalBatches) => {
 };
 
 /**
- * 모든 이미지를 병렬로 다운로드하는 메인 함수
+ * 모든 이미지와 비디오를 병렬로 다운로드하는 메인 함수
  *
  * @param {number} concurrency - 동시 다운로드 수 (기본값: 10)
  *
  * 처리 과정:
  * 1. 출력 디렉토리 생성
- * 2. JSON 데이터에서 이미지 URL과 메타데이터 추출
+ * 2. JSON 데이터에서 이미지 및 비디오 URL과 메타데이터 추출
  * 3. 파일명 생성 및 다운로드 목록 구성
  * 4. 지정된 동시성으로 배치 단위 병렬 처리
  * 5. 배치 간 지연으로 서버 부하 방지
@@ -205,18 +205,22 @@ const downloadBatch = async (batch, batchIndex, totalBatches) => {
  * - 중복 다운로드 방지로 대역폭 절약
  */
 const downloads = async (concurrency = 10) => {
-  console.log("🚀 이미지 다운로드를 시작합니다...");
+  console.log("🚀 파일 다운로드를 시작합니다...");
 
   // 출력 디렉토리 생성 (없으면 생성, 있으면 무시)
   ensureDirectory(downloadPath);
 
-  // 1단계: JSON 데이터에서 다운로드 대상 이미지 목록 수집
+  // 1단계: JSON 데이터에서 다운로드 대상 이미지 및 비디오 목록 수집
   const downloadList = [];
 
   for (const entry of data.results) {
-    const { created: createdAt, attached_images: images } = entry;
+    const {
+      created: createdAt,
+      attached_images: images,
+      attached_video: video,
+    } = entry;
 
-    // 이미지가 첨부된 엔트리만 처리
+    // 이미지가 첨부된 엔트리 처리
     if (images && images.length > 0) {
       for (const image of images) {
         const { id, original } = image;
@@ -237,12 +241,32 @@ const downloads = async (concurrency = 10) => {
         downloadList.push({ url: original, filename });
       }
     }
+
+    // 비디오가 첨부된 엔트리 처리
+    if (video && video.high) {
+      const { id, high } = video;
+
+      // URL이 없는 비디오는 건너뛰고 경고 출력
+      if (!high) {
+        console.warn(`⚠️  비디오 URL이 없습니다: ID ${id}`);
+        continue;
+      }
+
+      // 생성일시와 ID를 조합하여 고유한 파일명 생성
+      const filename = generateFilename(
+        createdAt,
+        id,
+        path.extname(high) || ".mp4", // 확장자가 없으면 .mp4 기본값
+      );
+
+      downloadList.push({ url: high, filename });
+    }
   }
 
   // 2단계: 통계 초기화 및 배치 구성
   stats.total = downloadList.length;
   console.log(
-    `📊 총 ${stats.total}개의 이미지를 ${concurrency}개씩 병렬로 다운로드합니다.`,
+    `📊 총 ${stats.total}개의 파일(이미지/비디오)을 ${concurrency}개씩 병렬로 다운로드합니다.`,
   );
 
   // 동시성 제어를 위해 전체 목록을 지정된 크기의 배치로 분할
