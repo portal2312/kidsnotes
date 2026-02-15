@@ -1,18 +1,10 @@
 # KidsNotes
 
-## Requirements
+Requirements:
 
 1. Go to [kidsnote](https://www.kidsnote.com/). Then, try Login.
-
 2. Go to [info](https://www.kidsnote.com/api/v1/me/info/) URL. Then, save to `data/info.json`
-
-## How to
-
-1. Go to terminal
-
-2. Save center file
-
-   Execute:
+3. Go to terminal, save center file:
 
    ```bash
    node src/centers.js data/info.json --open
@@ -23,39 +15,57 @@
 
    Save to file. For example: `data/centers/48652.json`
 
-### Reports
+## Reports
 
 알림장
 
-1. Open url
+### Read
 
-   ```bash
-   node src/reports.js data/info.json data/centers/48652.json 9999 2025-08-12 2025-08-12 --open
-   ```
+```bash
+node src/reports.js read \
+--info data/info.json \
+--center data/centers/48652.json \
+9999 2025-08-12 $(date "+%Y-%m-%d") --open
+```
 
-   - `data/info.json`: My information data
-   - `data/centers/48652.json`: My center data
-   - `9999`: Page size
-   - `2025-08-12`: Start date
-   - `2025-08-12`: End date
-   - `--open`: Open current browser
+- `--info`: My information data path (Required)
+- `--center`: My center data path (Required)
+- `9999`: Page size
+- `2025-08-12`: Start date
+- `$(date "+%Y-%m-%d")`: End date, Today
+- `--open`: Open current browser
 
-   > [!TIP]
-   > For today:
-   >
-   > node src/reports.js data/info.json data/centers/48652.json 9999 $(date "+%Y-%m-%d") $(date "+%Y-%m-%d") --open
+Save the response JSON context file to `data/reports/current.json` after open URLs.
 
-2. And, save file. For example: `data/reports/current.json`
+### Merge
 
-3. Downloads pictures from a reports
+Merge multiple JSON report files into one.
 
-   ```bash
-   node src/downloads.js data/reports/current.json
-   ```
+```bash
+node src/reports.js merge \
+data/reports/current.json \
+data/reports/2025.json \
+--save data/reports/merged.json
+```
 
-   - `data/reports/current.json`: This report JSON file includes a URL for each picture.
+- `data/reports/20260211.json`: First report file
+- `data/reports/20260213.json`: Second report file
+- `--save`: Output file path (Required)
 
-### Notices
+### Download
+
+ Download pictures using the report JSON file.
+
+ ```bash
+ node src/reports.js download \
+ data/reports/current.json \
+ pictures/2026
+ ```
+
+- `data/reports/current.json`: This report JSON file includes a URL for each picture.
+- `pictures/2026`: Download directory (Optional)
+
+## Notices
 
 공지사항
 
@@ -86,7 +96,7 @@
 
    - `data/reports/current.json`: This report JSON file includes a URL for each picture.
 
-### Sync Date from Filename
+## Sync Date from Filename
 
 파일 이름을 기반으로 생성 일자와 수정 일자를 동기화합니다.
 macOS의 `SetFile` 명령어를 사용하며, 대량의 파일 처리 시 멀티 스레드를 활용하여 빠르게 수행됩니다.

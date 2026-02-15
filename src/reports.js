@@ -1,6 +1,6 @@
-// utils에서 공통 함수들을 가져옵니다
 const { loadJson, toDateString, openInBrowser } = require("./utils");
 const path = require("path");
+const { parseArgs } = require("util");
 
 /**
  * 키즈노트 리포트 API URI들을 생성합니다
@@ -73,52 +73,176 @@ module.exports = {
 
 /**
  * CLI에서 직접 실행되는 경우 처리
- * 명령줄 인수를 받아 generateReportURIs 함수를 실행하고 결과를 출력합니다.
+ * 명령줄 인수를 받아 알림장 URI 생성, 리포트 병합, 사진/영상 다운로드 등의 작업을 수행합니다.
  *
  * 사용법:
- * node src/reports.js <infoPath> <centerPath> [pageSize] [startDate] [endDate] [--open]
+ * node src/reports.js <command> [options]
  *
- * 예시:
- * node src/reports.js data/info.json data/centers/1.json
- * node src/reports.js data/info.json data/centers/1.json 100
- * node src/reports.js data/info.json data/centers/1.json 100 2025-08-18
- * node src/reports.js data/info.json data/centers/1.json 100 2025-08-18 2025-08-19
- * node src/reports.js data/info.json data/centers/1.json 100 2025-08-18 2025-08-19 --open
+ * 명령어:
+ * 1. read: 알림장 URI 생성
+ *    node src/reports.js read --info <infoPath> --center <centerPath> [pageSize] [startDate] [endDate] [--open]
+ *
+ * 2. merge: 리포트 JSON 병합
+ *    node src/reports.js merge <file1> <file2> ... --save <outputFile>
+ *
+ * 3. download: 사진/영상 다운로드
+ *    node src/reports.js download <jsonFilePath> [downloadPath]
  */
 if (require.main === module) {
   const currentFile = path.relative(process.cwd(), __filename);
   const args = process.argv.slice(2);
 
-  if (args.length < 2) {
-    console.error(
-      `❌ 사용법: node ${currentFile} <infoPath> <centerPath> [pageSize] [startDate] [endDate] [--open]`,
-    );
-    console.log("📖 예시:");
-    console.log(`  node ${currentFile} data/info.json data/centers/1.json`);
-    console.log(`  node ${currentFile} data/info.json data/centers/1.json 100`);
-    console.log(
-      `  node ${currentFile} data/info.json data/centers/1.json 100 2025-08-18`,
-    );
-    console.log(
-      `  node ${currentFile} data/info.json data/centers/1.json 100 2025-08-18 2025-08-19`,
-    );
-    console.log(
-      `  node ${currentFile} data/info.json data/centers/1.json 100 2025-08-18 2025-08-19 --open`,
-    );
+  try {
+    const { values, positionals } = parseArgs({
+      args,
+      options: {
+        info: { type: "string" },
+        center: { type: "string" },
+        open: { type: "boolean" },
+        save: { type: "string" },
+      },
+      allowPositionals: true,
+    });
+
+    if (positionals.length === 0) {
+      printUsage(currentFile);
+      process.exit(1);
+    }
+
+    const command = positionals[0];
+
+    switch (command) {
+      case "read": {
+        if (!values.info || !values.center) {
+          console.error(
+            "❌ 오류: read 명령에는 --info와 --center 옵션이 반드시 필요합니다.",
+          );
+          process.exit(1);
+        }
+
+        // positionals: [command, pageSize, startDate, endDate]
+        const pageSize = positionals[1];
+        const startDate = positionals[2];
+        const endDate = positionals[3];
+
+        handleReadCommand(
+          values.info,
+          values.center,
+          pageSize ? parseInt(pageSize, 10) : undefined,
+          startDate,
+          endDate,
+          values.open || false,
+        );
+        break;
+      }
+      case "merge": {
+        if (!values.save) {
+          console.error(
+            "❌ 오류: merge 명령에는 --save <outputFile> 옵션이 반드시 필요합니다.",
+          );
+          process.exit(1);
+        }
+
+        // positionals: [command, file1, file2, ...]
+        const inputFiles = positionals.slice(1);
+
+        if (inputFiles.length === 0) {
+          console.error("❌ 오류: 병합할 입력 파일이 지정되지 않았습니다.");
+          process.exit(1);
+        }
+
+        handleMergeCommand(inputFiles, values.save);
+        break;
+      }
+      case "download": {
+        // positionals: [command, jsonFilePath, downloadPath]
+        if (positionals.length < 2) {
+          console.error(
+            "❌ 오류: download 명령에는 <jsonFilePath>가 반드시 필요합니다.",
+          );
+          process.exit(1);
+        }
+
+        const jsonFilePath = path.resolve(process.cwd(), positionals[1]);
+        let downloadPath;
+
+        if (positionals.length > 2) {
+          downloadPath = path.resolve(process.cwd(), positionals[2]);
+        } else {
+          downloadPath = path.resolve(process.cwd(), "pictures/current");
+        }
+
+        handleDownloadCommand(jsonFilePath, downloadPath);
+        break;
+      }
+      default:
+        console.error(`❌ 오류: 알 수 없는 명령어 '${command}' 입니다.`);
+        printUsage(currentFile);
+        process.exit(1);
+    }
+  } catch (err) {
+    if (err.code === "ERR_PARSE_ARGS_UNKNOWN_OPTION") {
+      console.error(`❌ 오류: 알 수 없는 옵션입니다. (${err.message})`);
+    } else {
+      console.error(
+        `❌ 오류: 인자 파싱 중 문제가 발생했습니다. (${err.message})`,
+      );
+    }
     process.exit(1);
   }
+}
 
-  // --open 옵션 확인 및 제거
-  const shouldOpen = args.includes("--open");
-  const filteredArgs = args.filter((arg) => arg !== "--open");
+function handleMergeCommand(inputFiles, outputFile) {
 
-  const [infoPath, centerPath, pageSize, startDate, endDate] = filteredArgs;
+  try {
+    const fs = require("fs");
+    // 첫 번째 파일을 기본 객체로 로드
+    const baseData = loadJson(inputFiles[0]);
 
+    if (!baseData.results || !Array.isArray(baseData.results)) {
+      console.error(
+        `❌ 오류: 첫 번째 파일(${inputFiles[0]})에 유효한 results 배열이 없습니다.`,
+      );
+      process.exit(1);
+    }
+
+    // 나머지 파일들의 results 병합
+    for (let i = 1; i < inputFiles.length; i++) {
+      const filePath = inputFiles[i];
+      const data = loadJson(filePath);
+
+      if (data.results && Array.isArray(data.results)) {
+        baseData.results.push(...data.results);
+      } else {
+        console.warn(
+          `⚠️ 경고: ${filePath} 파일에 results 배열이 없어 건너뜁니다.`,
+        );
+      }
+    }
+
+    // 결과 저장
+    fs.writeFileSync(outputFile, JSON.stringify(baseData, null, 2), "utf8");
+    // 성공 시 출력 없음 (요청사항)
+    process.exit(0);
+  } catch (error) {
+    console.error(`❌ 병합 중 오류 발생: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+function handleReadCommand(
+  infoPath,
+  centerPath,
+  pageSize,
+  startDate,
+  endDate,
+  shouldOpen,
+) {
   try {
     const uris = generateReportURIs(
       infoPath,
       centerPath,
-      pageSize ? parseInt(pageSize, 10) : undefined,
+      pageSize,
       startDate,
       endDate,
     );
@@ -135,6 +259,7 @@ if (require.main === module) {
     uris.forEach((uri, index) => {
       console.log(`${index + 1}. ${uri}`);
     });
+
 
     // --open 옵션이 있으면 브라우저에서 열기
     if (shouldOpen) {
@@ -154,4 +279,57 @@ if (require.main === module) {
     console.error(`❌ 오류 발생: ${error.message}`);
     process.exit(1);
   }
+}
+
+function handleDownloadCommand(jsonFilePath, downloadPath) {
+  const { downloads } = require("./downloads");
+
+  try {
+    if (!require("fs").existsSync(jsonFilePath)) {
+      console.error(`❌ 파일을 찾을 수 없습니다: ${jsonFilePath}`);
+      process.exit(1);
+    }
+
+    const data = loadJson(jsonFilePath);
+    console.log(`📁 JSON 파일 로드: ${jsonFilePath}`);
+    console.log(`📁 다운로드 경로: ${downloadPath}`);
+
+    downloads(data, downloadPath, 10)
+      .then(() => {
+        console.log("✅ 다운로드 작업 완료");
+        process.exit(0);
+      })
+      .catch((error) => {
+        console.error(`❌ 다운로드 중 오류 발생: ${error.message}`);
+        process.exit(1);
+      });
+  } catch (error) {
+    console.error(`❌ 오류 발생: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+function printUsage(currentFile) {
+  console.log(`❌ 사용법: node ${currentFile} <command> [options]`);
+  console.log("\n1️⃣  URIs 생성 (read):");
+  console.log(
+    `   node ${currentFile} read --info <infoPath> --center <centerPath> [pageSize] [startDate] [endDate] [--open]`,
+  );
+  console.log(
+    `   예시: node ${currentFile} read --info data/info.json --center data/centers/1.json 100 --open`,
+  );
+  console.log("\n2️⃣  JSON 병합 (merge):");
+  console.log(
+    `   node ${currentFile} merge <file1> <file2> ... --save <outputFile>`,
+  );
+  console.log(
+    `   예시: node ${currentFile} merge file1.json file2.json --save merged.json`,
+  );
+  console.log("\n3️⃣  사진/영상 다운로드 (download):");
+  console.log(
+    `   node ${currentFile} download <jsonFilePath> [downloadPath]`,
+  );
+  console.log(
+    `   예시: node ${currentFile} download data/reports/current.json pictures/2026`,
+  );
 }

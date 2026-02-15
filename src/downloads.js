@@ -204,7 +204,7 @@ const downloadBatch = async (batch, batchIndex, totalBatches) => {
  * - 서버 부하 방지를 위한 배치 간 1초 대기
  * - 중복 다운로드 방지로 대역폭 절약
  */
-const downloads = async (concurrency = 10) => {
+const downloads = async (data, downloadPath, concurrency = 10) => {
   console.log("🚀 파일 다운로드를 시작합니다...");
 
   // 출력 디렉토리 생성 (없으면 생성, 있으면 무시)
@@ -269,6 +269,13 @@ const downloads = async (concurrency = 10) => {
     `📊 총 ${stats.total}개의 파일(이미지/비디오)을 ${concurrency}개씩 병렬로 다운로드합니다.`,
   );
 
+  // 전역 변수 설정 (download 함수에서 사용)
+  // 주의: downloadPath는 전역 변수가 아닌 인자로 전달받은 값을 사용해야 하지만,
+  // download 함수가 전역 변수를 참조하므로 여기서 설정해줍니다.
+  // 더 좋은 방법은 download 함수에도 path를 인자로 전달하는 것이지만, 최소한의 변경을 위해 이렇게 처리합니다.
+  // 다만, 이 파일의 전역 변수 downloadPath에 값을 할당해야 합니다.
+  require("./downloads").setDownloadPath(downloadPath);
+
   // 동시성 제어를 위해 전체 목록을 지정된 크기의 배치로 분할
   const batches = chunkArray(downloadList, concurrency);
   console.log(`📦 총 ${batches.length}개 배치로 나누어 처리합니다.`);
@@ -284,11 +291,17 @@ const downloads = async (concurrency = 10) => {
   }
 };
 
+// 전역 변수 설정을 위한 헬퍼 함수
+const setDownloadPath = (path) => {
+  downloadPath = path;
+};
+
 // 모듈로 사용될 때를 위한 exports
 module.exports = {
   downloads,
   download,
   downloadBatch,
+  setDownloadPath,
 };
 
 /**
@@ -327,7 +340,7 @@ if (require.main === module) {
     ? args[0]
     : path.resolve(process.cwd(), args[0]);
 
-  downloadPath = args[1]
+  const targetPath = args[1]
     ? path.isAbsolute(args[1])
       ? args[1]
       : path.resolve(process.cwd(), args[1])
@@ -343,7 +356,7 @@ if (require.main === module) {
   try {
     data = loadJson(jsonFilePath);
     console.log(`📁 JSON 파일 로드: ${jsonFilePath}`);
-    console.log(`📁 다운로드 경로: ${downloadPath}`);
+    console.log(`📁 다운로드 경로: ${targetPath}`);
     console.log(`📊 리포트 개수: ${data.results ? data.results.length : 0}개`);
   } catch (error) {
     console.error(`❌ JSON 파일 로드 실패: ${error.message}`);
@@ -351,7 +364,7 @@ if (require.main === module) {
   }
 
   // 다운로드 실행
-  downloads(10)
+  downloads(data, targetPath, 10)
     .then(() => {
       // 성공 통계 출력
       const duration = Math.round((Date.now() - startTime) / 1000);
