@@ -1,5 +1,6 @@
 const { loadJson, openInBrowser } = require("./utils");
 const path = require("path");
+const { parseArgs } = require("util");
 const fs = require("fs");
 
 /**
@@ -58,31 +59,36 @@ module.exports = {
   generateCenterURIs,
 };
 
-/**
- * CLI에서 직접 실행되는 경우 처리
- * 명령줄 인수를 받아 generateCenterURIs 함수를 실행하고 결과를 출력합니다.
- *
- * 사용법:
- * node src/centers.js <infoPath> [--open]
- *
- * 예시:
- * node src/centers.js data/info.json
- * node src/centers.js data/info.json --open
- */
-if (require.main === module) {
-  const currentFile = path.relative(process.cwd(), __filename);
-  const args = process.argv.slice(2);
+function parseReadArgs(args) {
+  try {
+    const { values, positionals } = parseArgs({
+      args,
+      options: {
+        info: { type: "string" },
+        open: { type: "boolean" },
+      },
+      allowPositionals: true,
+    });
 
-  if (args.length < 1) {
-    console.error(`❌ 사용법: node ${currentFile} <infoPath> [--open]`);
-    console.log("📖 예시:");
-    console.log(`  node ${currentFile} data/info.json`);
-    console.log(`  node ${currentFile} data/info.json --open`);
-    process.exit(1);
+    return { values, positionals };
+  } catch (e) {
+    console.error(`❌ 옵션 파싱 오류: ${e.message}`);
+    return null;
   }
+}
 
-  const infoPath = args[0];
-  const shouldOpen = args.includes("--open");
+function handleReadCommand(args) {
+  const parsed = parseReadArgs(args);
+  if (!parsed) return;
+
+  const { values } = parsed;
+  const infoPath = values.info;
+  const shouldOpen = values.open;
+
+  if (!infoPath) {
+    console.error("❌ 오류: --info <path> 옵션은 필수입니다.");
+    return;
+  }
 
   try {
     const uris = generateCenterURIs(infoPath);
@@ -95,7 +101,6 @@ if (require.main === module) {
       console.log(`${index + 1}. ${uri}`);
     });
 
-    // --open 옵션이 있으면 브라우저에서 열기
     if (shouldOpen) {
       console.log("\n🌐 브라우저에서 URI들을 열고 있습니다...");
       console.log(
@@ -112,5 +117,53 @@ if (require.main === module) {
   } catch (error) {
     console.error(`❌ 오류 발생: ${error.message}`);
     process.exit(1);
+  }
+}
+
+function printUsage() {
+  console.log("사용법:");
+  console.log("  node src/centers.js <command> [options]");
+  console.log("");
+  console.log("명령어:");
+  console.log("  read      센터 URI 목록을 생성하고 조회합니다.");
+  console.log("");
+  console.log("예시:");
+  console.log("  node src/centers.js read --info data/info.json --open");
+}
+
+/**
+ * CLI에서 직접 실행되는 경우 처리
+ * 명령줄 인수를 받아 명령어를 실행합니다.
+ *
+ * 사용법:
+ * node src/centers.js <command> [options]
+ *
+ * 명령어:
+ * 1. read: 센터 URI 목록을 생성하고 조회합니다.
+ *    node src/centers.js read --info <infoPath> [--open]
+ *
+ * 예시:
+ * node src/centers.js read --info data/info.json
+ * node src/centers.js read --info data/info.json --open
+ */
+if (require.main === module) {
+  const args = process.argv.slice(2);
+
+  if (args.length === 0) {
+    printUsage();
+    process.exit(1);
+  }
+
+  const command = args[0];
+  const commandArgs = args.slice(1);
+
+  switch (command) {
+    case "read":
+      handleReadCommand(commandArgs);
+      break;
+    default:
+      console.error(`❌ 알 수 없는 명령어: ${command}`);
+      printUsage();
+      process.exit(1);
   }
 }

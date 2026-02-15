@@ -1,19 +1,22 @@
 # KidsNotes
 
-Requirements:
-
 1. Go to [kidsnote](https://www.kidsnote.com/). Then, try Login.
 2. Go to [info](https://www.kidsnote.com/api/v1/me/info/) URL. Then, save to `data/info.json`
-3. Go to terminal, save center file:
+3. Go to [Centers](#centers).
 
-   ```bash
-   node src/centers.js data/info.json --open
-   ```
+## Centers
 
-   - `data/info.json`: My information data
-   - `--open`: Open current browser
+**Read**:
 
-   Save to file. For example: `data/centers/48652.json`
+```bash
+node src/centers.js read --info data/info.json --open
+```
+
+- `--info`: My information data path (Required)
+- `--open`: Open current browser
+
+> [!IMPORTANT]
+> Save to file. For example: `data/centers/48652.json`
 
 ## Reports
 
