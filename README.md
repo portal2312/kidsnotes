@@ -19,7 +19,7 @@ Requirements:
 
 알림장
 
-### Read
+**Read**:
 
 ```bash
 node src/reports.js read \
@@ -35,9 +35,10 @@ node src/reports.js read \
 - `$(date "+%Y-%m-%d")`: End date, Today
 - `--open`: Open current browser
 
-Save the response JSON context file to `data/reports/current.json` after open URLs.
+> [!IMPORTANT]
+> Save the response JSON context file to `data/reports/current.json` after open URLs.
 
-### Merge
+**Merge**:
 
 Merge multiple JSON report files into one.
 
@@ -52,7 +53,7 @@ data/reports/2025.json \
 - `data/reports/20260213.json`: Second report file
 - `--save`: Output file path (Required)
 
-### Download
+**Download**:
 
  Download pictures using the report JSON file.
 
@@ -69,32 +70,49 @@ data/reports/2025.json \
 
 공지사항
 
-1. Open url
+**Read**:
 
-   ```bash
-   node src/notices.js data/info.json data/centers/48652.json 9999 2025-09-07 --open
-   ```
+```bash
+node src/notices.js read \
+--info data/info.json \
+--center data/centers/48652.json \
+9999 2025-09-07 --open
+```
 
-   - `data/info.json`: My information data
-   - `data/centers/48652.json`: My center data
-   - `9999`: Page size
-   - `2025-08-12`: Search date
-   - `--open`: Open current browser
+- `--info`: My information data path (Required)
+- `--center`: My center data path (Required)
+- `9999`: Page size
+- `2025-09-07`: Search date
+- `--open`: Open current browser
 
-   > [!TIP]
-   > For today:
-   >
-   > node src/notices.js data/info.json data/centers/48652.json 9999 $(date "+%Y-%m-%d") --open
+> [!IMPORTANT]
+> Save the response JSON context file to `data/notices/current.json` after open URLs.
 
-2. And, save file. For example: `data/notices/current.json`
+**Merge**:
 
-3. Downloads pictures from a reports
+Merge multiple JSON notice files into one.
 
-   ```bash
-   node src/downloads.js data/notices/current.json
-   ```
+```bash
+node src/notices.js merge \
+data/notices/current.json \
+data/notices/old.json \
+--save data/notices/merged.json
+```
 
-   - `data/reports/current.json`: This report JSON file includes a URL for each picture.
+- `--save`: Output file path (Required)
+
+**Download**:
+
+Download pictures using the notice JSON file.
+
+```bash
+node src/notices.js download \
+data/notices/current.json \
+pictures/notices
+```
+
+- `data/notices/current.json`: This notice JSON file includes a URL for each picture.
+- `pictures/notices`: Download directory (Optional)
 
 ## Sync Date from Filename
 
