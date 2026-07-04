@@ -58,13 +58,13 @@ data/reports/2025.json \
 
 **Download**:
 
- Download pictures using the report JSON file.
+Download pictures using the report JSON file.
 
- ```bash
- node src/reports.js download \
- data/reports/current.json \
- pictures/2026
- ```
+```bash
+node src/reports.js download \
+data/reports/current.json \
+pictures/current
+```
 
 - `data/reports/current.json`: This report JSON file includes a URL for each picture.
 - `pictures/2026`: Download directory (Optional)
